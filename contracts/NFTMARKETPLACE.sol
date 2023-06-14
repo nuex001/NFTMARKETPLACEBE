@@ -71,7 +71,7 @@ contract NFTMARKETPLACE is ERC721URIStorage {
         bool bidding,
         string memory _details,
         uint256 timestamp
-     ) public payable onlyMember returns (uint256) {
+    ) public payable onlyMember returns (uint256) {
         s_tokenIds.increment();
         uint256 newTokenId = s_tokenIds.current();
         _mint(msg.sender, newTokenId);
@@ -95,7 +95,7 @@ contract NFTMARKETPLACE is ERC721URIStorage {
         bool bidding,
         string memory _details,
         uint256 timestamp
-     ) private {
+    ) private {
         if (price < 0) {
             revert NFTMARKETPLACE__lowPrice();
         }
@@ -134,7 +134,7 @@ contract NFTMARKETPLACE is ERC721URIStorage {
     function reSellToken(
         uint256 tokenId,
         uint256 price
-     ) public payable onlyMember {
+    ) public payable onlyMember {
         require(
             s_IdMarketItem[tokenId].price == 0,
             "Sorry the token doesn't exist"
@@ -217,11 +217,6 @@ contract NFTMARKETPLACE is ERC721URIStorage {
         s_members[_member] = true;
     }
 
-    // GETTERS
-    function getListing() public view returns (uint256) {
-        return s_listingPrice;
-    }
-
     function fetchMarketItem() public view returns (MarketItem[] memory) {
         uint256 itemCount = s_tokenIds.current();
         uint256 unSoldItemCount = s_tokenIds.current() - s_tokensold.current();
@@ -264,7 +259,7 @@ contract NFTMARKETPLACE is ERC721URIStorage {
 
     function filterNftByAdress(
         address _owner
-     ) public view returns (MarketItem[] memory) {
+    ) public view returns (MarketItem[] memory) {
         uint256 totalCount = s_tokenIds.current();
         uint256 itemCount = 0;
         uint256 currentIdx = 0;
@@ -290,7 +285,7 @@ contract NFTMARKETPLACE is ERC721URIStorage {
 
     function filterNftCat(
         string memory cat
-     ) public view returns (MarketItem[] memory) {
+    ) public view returns (MarketItem[] memory) {
         uint256 totalCount = s_tokenIds.current();
         uint256 itemCount = 0;
         uint256 currentIdx = 0;
@@ -322,8 +317,17 @@ contract NFTMARKETPLACE is ERC721URIStorage {
 
     function fetchNFTsDetails(
         uint256 tokenId
-     ) public view returns (MarketItem memory, string memory /**ipfs url */) {
+    ) public view returns (MarketItem memory, string memory /**ipfs url */) {
         return (s_IdMarketItem[tokenId], tokenURI(tokenId));
+    }
+
+    // GETTERS
+    function getListing() public view returns (uint256) {
+        return s_listingPrice;
+    }
+
+    function getOwner() public view returns (address) {
+        return i_owner;
     }
 }
 

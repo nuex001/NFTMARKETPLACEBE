@@ -1,9 +1,7 @@
 {
-  "dependencies": {
-    "hardhat": "^2.15.0"
-  },
+  "dependencies": {},
   "devDependencies": {
-    "@nomicfoundation/hardhat-chai-matchers": "^2.0.0",
+    "@nomicfoundation/hardhat-chai-matchers": "^2.0.1",
     "@nomicfoundation/hardhat-ethers": "^3.0.0",
     "@nomicfoundation/hardhat-network-helpers": "^1.0.0",
     "@nomicfoundation/hardhat-toolbox": "^3.0.0",
@@ -15,9 +13,11 @@
     "@typechain/ethers-v6": "^0.4.0",
     "@typechain/hardhat": "^8.0.0",
     "chai": "^4.3.7",
+    "chai-as-promised": "^7.1.1",
     "dotenv": "^16.1.4",
     "ethereum-waffle": "^4.0.10",
-    "ethers": "^6.5.1",
+    "ethers": "5.7.2",
+    "hardhat": "^2.15.0",
     "hardhat-contract-sizer": "^2.9.0",
     "hardhat-deploy": "^0.11.30",
     "hardhat-gas-reporter": "^1.0.9",

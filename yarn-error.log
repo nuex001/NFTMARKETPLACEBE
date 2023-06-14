@@ -1,8 +1,8 @@
 Arguments: 
-  /home/nuel/.nvm/versions/node/v18.15.0/bin/node /home/nuel/.nvm/versions/node/v18.15.0/bin/yarn add --dev @openzeppelin/contracts
+  /home/nuel/.nvm/versions/node/v18.15.0/bin/node /home/nuel/.nvm/versions/node/v18.15.0/bin/yarn add @ethers:5.7.2
 
 PATH: 
-  /home/nuel/.vscode-server/bin/b3e4e68a0bc097f0ae7907b217c1119af9e03435/bin/remote-cli:/home/nuel/.nvm/versions/node/v18.15.0/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/mnt/c/Windows/system32:/mnt/c/Windows:/mnt/c/Windows/System32/Wbem:/mnt/c/Windows/System32/WindowsPowerShell/v1.0/:/mnt/c/Windows/System32/OpenSSH/:/mnt/c/Program Files (x86)/nodejs/:/mnt/c/Program Files/Git/cmd:/mnt/c/Windows/system32:/mnt/c/Windows:/mnt/c/Windows/System32/Wbem:/mnt/c/Windows/System32/WindowsPowerShell/v1.0/:/mnt/c/Windows/System32/OpenSSH/:/mnt/c/Program Files (x86)/nodejs/:/mnt/c/Program Files/Git/cmd:/snap/bin
+  /home/nuel/.nvm/versions/node/v18.15.0/bin:/home/nuel/.vscode-server/bin/b380da4ef1ee00e224a15c1d4d9793e27c2b6302/bin/remote-cli:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/mnt/c/Windows/system32:/mnt/c/Windows:/mnt/c/Windows/System32/Wbem:/mnt/c/Windows/System32/WindowsPowerShell/v1.0/:/mnt/c/Windows/System32/OpenSSH/:/mnt/c/Program Files (x86)/nodejs/:/mnt/c/Program Files/Git/cmd:/mnt/c/Windows/system32:/mnt/c/Windows:/mnt/c/Windows/System32/Wbem:/mnt/c/Windows/System32/WindowsPowerShell/v1.0/:/mnt/c/Windows/System32/OpenSSH/:/mnt/c/Program Files (x86)/nodejs/:/mnt/c/Program Files/Git/cmd:/mnt/c/Users/EDE/AppData/Local/Programs/Microsoft VS Code/bin
 
 Yarn version: 
   1.22.19
@@ -14,14 +14,21 @@ Platform:
   linux x64
 
 Trace: 
-  Error: connect ECONNREFUSED 104.16.21.35:443
-      at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1494:16)
+  Error: https://registry.yarnpkg.com/@ethers:5.7.2: Request "https://registry.yarnpkg.com/@ethers:5.7.2" returned a 405
+      at params.callback [as _callback] (/home/nuel/.nvm/versions/node/v18.15.0/lib/node_modules/yarn/lib/cli.js:66154:18)
+      at self.callback (/home/nuel/.nvm/versions/node/v18.15.0/lib/node_modules/yarn/lib/cli.js:140890:22)
+      at Request.emit (node:events:513:28)
+      at Request.<anonymous> (/home/nuel/.nvm/versions/node/v18.15.0/lib/node_modules/yarn/lib/cli.js:141862:10)
+      at Request.emit (node:events:513:28)
+      at IncomingMessage.<anonymous> (/home/nuel/.nvm/versions/node/v18.15.0/lib/node_modules/yarn/lib/cli.js:141784:12)
+      at Object.onceWrapper (node:events:627:28)
+      at IncomingMessage.emit (node:events:525:35)
+      at endReadableNT (node:internal/streams/readable:1359:12)
+      at process.processTicksAndRejections (node:internal/process/task_queues:82:21)
 
 npm manifest: 
   {
-    "dependencies": {
-      "hardhat": "^2.15.0"
-    },
+    "dependencies": {},
     "devDependencies": {
       "@nomicfoundation/hardhat-chai-matchers": "^2.0.0",
       "@nomicfoundation/hardhat-ethers": "^3.0.0",
@@ -31,12 +38,14 @@ npm manifest:
       "@nomiclabs/hardhat-ethers": "npm:hardhat-deploy-ethers",
       "@nomiclabs/hardhat-etherscan": "^3.1.7",
       "@nomiclabs/hardhat-waffle": "^2.0.6",
+      "@openzeppelin/contracts": "^4.9.1",
       "@typechain/ethers-v6": "^0.4.0",
       "@typechain/hardhat": "^8.0.0",
       "chai": "^4.3.7",
       "dotenv": "^16.1.4",
       "ethereum-waffle": "^4.0.10",
       "ethers": "^6.5.1",
+      "hardhat": "^2.15.0",
       "hardhat-contract-sizer": "^2.9.0",
       "hardhat-deploy": "^0.11.30",
       "hardhat-gas-reporter": "^1.0.9",
@@ -968,6 +977,11 @@ Lockfile:
     version "2.0.6"
     resolved "https://registry.yarnpkg.com/@nomiclabs/hardhat-waffle/-/hardhat-waffle-2.0.6.tgz#d11cb063a5f61a77806053e54009c40ddee49a54"
     integrity sha512-+Wz0hwmJGSI17B+BhU/qFRZ1l6/xMW82QGXE/Gi+WTmwgJrQefuBs1lIf7hzQ1hLk6hpkvb/zwcNkpVKRYTQYg==
+  
+  "@openzeppelin/contracts@^4.9.1":
+    version "4.9.1"
+    resolved "https://registry.yarnpkg.com/@openzeppelin/contracts/-/contracts-4.9.1.tgz#afa804d2c68398704b0175acc94d91a54f203645"
+    integrity sha512-aLDTLu/If1qYIFW5g4ZibuQaUsFGWQPBq1mZKp/txaebUnGHDmmiBhRLY1tDNedN0m+fJtKZ1zAODS9Yk+V6uA==
   
   "@resolver-engine/core@^0.3.3":
     version "0.3.3"

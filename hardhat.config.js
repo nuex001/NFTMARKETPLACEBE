@@ -1,10 +1,10 @@
 // require("@nomicfoundation/hardhat-toolbox")
+require("@nomiclabs/hardhat-waffle");
 require("@nomiclabs/hardhat-ethers"); //had this problem that getContract is always saying ethers.getContract is not a function
 require("dotenv").config()
 require("solidity-coverage")
 require("hardhat-gas-reporter")
 require("hardhat-deploy");
-require("@nomiclabs/hardhat-waffle");
 
 /** @type import('hardhat/config').HardhatUserConfig */
 const SEPOLIA_RPC_URL =

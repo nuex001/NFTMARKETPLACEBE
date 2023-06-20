@@ -8,6 +8,12 @@ import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "hardhat/console.sol";
 error NFTMARKETPLACE__lowPrice();
 error NFTMARKETPLACE__lowListingPrice();
+error NFTMARKETPLACE__NotMEMBER();
+error NFTMARKETPLACE__OnlyOwner();
+error NFTMARKETPLACE__UnAuthorized();
+error NFTMARKETPLACE__OnlyForBidding();
+error NFTMARKETPLACE__NotStarted();
+error NFTMARKETPLACE__Ended();
 
 contract NFTMARKETPLACE is ERC721URIStorage {
     // EVENTS
@@ -20,6 +26,12 @@ contract NFTMARKETPLACE is ERC721URIStorage {
         bool sold
     );
     event Bid(address indexed sender, uint256 amount);
+    event CreateMarketSale(
+        address indexed buyer,
+        uint256 tokenId,
+        uint256 price
+    );
+    event Resell(address indexed seller, uint256 price);
     event WithdrawBids(address indexed bidder, uint256 amount);
     event End(address indexed highestBidder, uint256 highestBid);
 
@@ -35,11 +47,10 @@ contract NFTMARKETPLACE is ERC721URIStorage {
     }
     // state variable
     address payable private immutable i_owner;
-    mapping(uint256 => uint256) public s_endAt;
-    mapping(uint256 => bool) public s_ended;
-    mapping(uint256 => bool) public s_started;
-    mapping(uint256 => address) public s_highestBidder;
-    mapping(uint256 => uint256) public s_highestBid;
+    mapping(uint256 => uint256) private s_endAt;
+    mapping(uint256 => bool) private s_ended;
+    mapping(uint256 => bool) private s_started;
+    mapping(uint256 => address) private s_highestBidder;
     mapping(uint256 => mapping(address => uint)) public s_bids;
     // normal
     using Counters for Counters.Counter;
@@ -47,14 +58,18 @@ contract NFTMARKETPLACE is ERC721URIStorage {
     Counters.Counter private s_tokensold;
     mapping(uint256 => MarketItem) private s_IdMarketItem;
     mapping(address => bool) public s_members;
-    uint256 s_listingPrice = 0.00025 ether;
+    uint256 constant s_listingPrice = 0.00025 ether;
     // MODIFIERS
     modifier onlyOwner() {
-        require(msg.sender == i_owner, "Autorization denied");
+        if (msg.sender != i_owner) {
+            revert NFTMARKETPLACE__OnlyOwner();
+        }
         _;
     }
     modifier onlyMember() {
-        require(s_members[msg.sender], "Strictly for members Only");
+        if (!s_members[msg.sender] && msg.sender != i_owner) {
+            revert NFTMARKETPLACE__NotMEMBER();
+        }
         _;
     }
 
@@ -95,11 +110,11 @@ contract NFTMARKETPLACE is ERC721URIStorage {
         bool bidding,
         string memory _details,
         uint256 timestamp
-    ) private {
-        if (price < 0) {
+    ) internal {
+        if (price <= 0) {
             revert NFTMARKETPLACE__lowPrice();
         }
-        if (msg.value == s_listingPrice) {
+        if (msg.value != s_listingPrice) {
             revert NFTMARKETPLACE__lowListingPrice();
         }
         // Checking for devices
@@ -113,12 +128,10 @@ contract NFTMARKETPLACE is ERC721URIStorage {
             _details,
             false
         );
-
         // working for bidding
         if (timestamp > 0) {
             s_endAt[tokenId] = timestamp; //mapping the timestamp to the tokenId
         }
-
         _transfer(msg.sender, address(this), tokenId);
         emit idMarketCreated(
             tokenId,
@@ -135,89 +148,125 @@ contract NFTMARKETPLACE is ERC721URIStorage {
         uint256 tokenId,
         uint256 price
     ) public payable onlyMember {
+        MarketItem storage newMarketItem = s_IdMarketItem[tokenId];
         require(
-            s_IdMarketItem[tokenId].price == 0,
+            newMarketItem.seller != address(0),
             "Sorry the token doesn't exist"
         );
-        MarketItem storage newMarketItem = s_IdMarketItem[tokenId];
-        require(newMarketItem.seller == msg.sender, "Not Authorized");
-        require(msg.value == s_listingPrice, " Eth below Listing Price");
+        if (newMarketItem.owner != payable(msg.sender)) {
+            revert NFTMARKETPLACE__UnAuthorized();
+        }
+        if (msg.value != s_listingPrice) {
+            revert NFTMARKETPLACE__lowListingPrice();
+        }
         newMarketItem.sold = false;
         newMarketItem.price = price;
         newMarketItem.seller = payable(msg.sender);
         newMarketItem.owner = payable(address(this));
         s_tokensold.decrement();
+        // Transfer the token ownership back to the marketplace
         _transfer(msg.sender, address(this), tokenId);
+        emit Resell(msg.sender, price);
     }
 
     //
     function transferNftOwnership(uint256 tokenId) internal {
         MarketItem storage newMarketItem = s_IdMarketItem[tokenId];
         newMarketItem.seller = payable(msg.sender);
-        newMarketItem.owner = payable(address(this));
+        newMarketItem.owner = payable(msg.sender);
         newMarketItem.sold = true;
         s_tokensold.increment();
     }
 
-    function createMarketSale(uint256 tokenId) public payable {
-        require(
-            s_IdMarketItem[tokenId].price == 0,
-            "Sorry the token doesn't exist"
-        );
+    function createMarketSale(uint256 tokenId) external payable {
         MarketItem storage newMarketItem = s_IdMarketItem[tokenId];
         uint256 price = newMarketItem.price;
-        if (msg.value == price) {
+        require(newMarketItem.seller != address(0), "Token doesn't exist");
+        if (msg.value < (price * 1e18)) {
             revert NFTMARKETPLACE__lowPrice();
+        }
+        if (newMarketItem.bidding) {
+            revert NFTMARKETPLACE__OnlyForBidding();
         }
         transferNftOwnership(tokenId);
         _transfer(address(this), msg.sender, tokenId);
         payable(i_owner).transfer(s_listingPrice);
         payable(newMarketItem.seller).transfer(msg.value);
+        emit CreateMarketSale(msg.sender, tokenId, msg.value);
+    }
+
+    function startAuction(uint256 tokenId) external {
+        if (s_IdMarketItem[tokenId].seller != payable(msg.sender)) {
+            revert NFTMARKETPLACE__UnAuthorized();
+        }
+        if (!s_IdMarketItem[tokenId].bidding) {
+            revert NFTMARKETPLACE__OnlyForBidding();
+        }
+        s_started[tokenId] = true;
     }
 
     function bid(uint256 tokenId) external payable {
-        require(block.timestamp < s_endAt[tokenId], "ended");
-        require(msg.value > s_highestBid[tokenId], "Value < highest Bid");
+        MarketItem storage newMarketItem = s_IdMarketItem[tokenId];
+        if (block.timestamp > s_endAt[tokenId]) {
+            revert NFTMARKETPLACE__Ended();
+        }
+        if (!s_started[tokenId]) {
+            revert NFTMARKETPLACE__NotStarted();
+        }
+
+        if (msg.value < (newMarketItem.price * 1e18)) {
+            revert NFTMARKETPLACE__lowPrice();
+        }
         // keep track of bids
         if (s_highestBidder[tokenId] != address(0)) {
-            s_bids[tokenId][s_highestBidder[tokenId]] += s_highestBid[tokenId];
+            s_bids[tokenId][msg.sender] += newMarketItem.price;
         }
-        s_highestBid[tokenId] = msg.value;
+        newMarketItem.price = msg.value / 1e18;
         s_highestBidder[tokenId] = msg.sender;
         emit Bid(msg.sender, msg.value);
     }
 
     function withdrawBids(uint256 tokenId) external {
-        uint bal = s_bids[tokenId][s_highestBidder[tokenId]];
-        s_bids[tokenId][s_highestBidder[tokenId]] = 0; //stoping reentrancy attack
+        uint256 bal;
+        if (s_highestBidder[tokenId] == msg.sender) {
+            s_highestBidder[tokenId] = address(0);
+            bal = s_IdMarketItem[tokenId].price * 1e18;
+        } else {
+            bal = s_bids[tokenId][msg.sender] * 1e18;
+            s_bids[tokenId][msg.sender] = 0; //stoping reentrancy attack
+        }
         payable(msg.sender).transfer(bal);
         emit WithdrawBids(msg.sender, bal);
     }
 
     //End Bids
     function end(uint256 tokenId) external {
-        require(s_started[tokenId], "Not started");
-        require(!s_ended[tokenId], "ended");
+        if (!s_started[tokenId]) {
+            revert NFTMARKETPLACE__NotStarted();
+        }
+        if (s_ended[tokenId]) {
+            revert NFTMARKETPLACE__Ended();
+        }
         require(block.timestamp >= s_endAt[tokenId], "Not ended");
         s_ended[tokenId] = true;
-        if (s_highestBidder[tokenId] == address(0)) {
-            _transfer(address(this), s_highestBidder[tokenId], tokenId);
-            payable(s_IdMarketItem[tokenId].seller).transfer(
-                s_highestBid[tokenId]
-            );
+        address highestBidder = s_highestBidder[tokenId];
+        MarketItem storage newMarketItem = s_IdMarketItem[tokenId];
+        if (highestBidder != address(0)) {
+            _transfer(address(this), newMarketItem.seller, tokenId);
+            payable(newMarketItem.seller).transfer(newMarketItem.price * 1e18);
             transferNftOwnership(tokenId);
         } else {
-            _transfer(address(this), s_IdMarketItem[tokenId].seller, tokenId);
+            _transfer(address(this), newMarketItem.seller, tokenId);
         }
-        emit End(s_highestBidder[tokenId], s_highestBid[tokenId]);
+        emit End(highestBidder, newMarketItem.price);
     }
 
     // add members
-    function addmembers(address _member) external onlyOwner {
+    function addmember(address _member) external onlyOwner {
         s_members[_member] = true;
     }
 
-    function fetchMarketItem() public view returns (MarketItem[] memory) {
+    function fetchMarketItem() external view returns (MarketItem[] memory) {
         uint256 itemCount = s_tokenIds.current();
         uint256 unSoldItemCount = s_tokenIds.current() - s_tokensold.current();
         uint256 currentIdx = 0;
@@ -233,7 +282,7 @@ contract NFTMARKETPLACE is ERC721URIStorage {
         return items;
     }
 
-    function fetchMyNFTs() public view returns (MarketItem[] memory) {
+    function fetchMyNFTs() external view returns (MarketItem[] memory) {
         uint256 totalCount = s_tokenIds.current();
         uint256 itemCount = 0;
         uint256 currentIdx = 0;
@@ -259,7 +308,7 @@ contract NFTMARKETPLACE is ERC721URIStorage {
 
     function filterNftByAdress(
         address _owner
-    ) public view returns (MarketItem[] memory) {
+    ) external view returns (MarketItem[] memory) {
         uint256 totalCount = s_tokenIds.current();
         uint256 itemCount = 0;
         uint256 currentIdx = 0;
@@ -285,13 +334,12 @@ contract NFTMARKETPLACE is ERC721URIStorage {
 
     function filterNftCat(
         string memory cat
-    ) public view returns (MarketItem[] memory) {
+    ) external view returns (MarketItem[] memory) {
         uint256 totalCount = s_tokenIds.current();
         uint256 itemCount = 0;
         uint256 currentIdx = 0;
 
         for (uint256 i = 0; i < totalCount; i++) {
-            //getting the count of nft cat
             if (
                 keccak256(bytes(s_IdMarketItem[i + 1].itemType)) ==
                 keccak256(bytes(cat))
@@ -317,20 +365,16 @@ contract NFTMARKETPLACE is ERC721URIStorage {
 
     function fetchNFTsDetails(
         uint256 tokenId
-    ) public view returns (MarketItem memory, string memory /**ipfs url */) {
+    ) external view returns (MarketItem memory, string memory /**ipfs url */) {
         return (s_IdMarketItem[tokenId], tokenURI(tokenId));
     }
 
     // GETTERS
-    function getListing() public view returns (uint256) {
-        return s_listingPrice;
+    function getListing() external pure returns (uint256) {
+        return s_listingPrice / 1e18;
     }
 
-    function getOwner() public view returns (address) {
+    function getOwner() external view returns (address) {
         return i_owner;
     }
 }
-
-/**
- * NOTE : i can't call a public funtion within a function , i think it's only private and internal,and vise versa with payable
- */

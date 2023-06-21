@@ -248,6 +248,10 @@ describe("NFTMARKETPLACE", function () {
             const res = await nftMarketPlace.fetchNFTsDetails(tokenId);
             assert.equal(res.length, 2);
         })
+        it("Get fetchTokenUrl", async () => {
+            const res = await nftMarketPlace.fetchTokenUrl(tokenId);
+            assert.equal(res, "tokenUrl");
+        })
     })
 });
 

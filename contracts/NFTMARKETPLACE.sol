@@ -13,6 +13,7 @@ error NFTMARKETPLACE__OnlyOwner();
 error NFTMARKETPLACE__UnAuthorized();
 error NFTMARKETPLACE__OnlyForBidding();
 error NFTMARKETPLACE__NotStarted();
+error NFTMARKETPLACE__TokenNotExist();
 error NFTMARKETPLACE__Ended();
 
 contract NFTMARKETPLACE is ERC721URIStorage {
@@ -44,12 +45,13 @@ contract NFTMARKETPLACE is ERC721URIStorage {
         bool bidding;
         string details;
         bool sold;
+        uint timestamp;
+        bool started;
     }
     // state variable
     address payable private immutable i_owner;
     mapping(uint256 => uint256) private s_endAt;
     mapping(uint256 => bool) private s_ended;
-    mapping(uint256 => bool) private s_started;
     mapping(uint256 => address) private s_highestBidder;
     mapping(uint256 => mapping(address => uint)) public s_bids;
     // normal
@@ -57,7 +59,7 @@ contract NFTMARKETPLACE is ERC721URIStorage {
     Counters.Counter private s_tokenIds;
     Counters.Counter private s_tokensold;
     mapping(uint256 => MarketItem) private s_IdMarketItem;
-    mapping(address => bool) public s_members;
+    mapping(address => bool) private s_members;
     uint256 constant s_listingPrice = 0.00025 ether;
     // MODIFIERS
     modifier onlyOwner() {
@@ -126,6 +128,8 @@ contract NFTMARKETPLACE is ERC721URIStorage {
             itemType,
             bidding,
             _details,
+            false,
+            timestamp,
             false
         );
         // working for bidding
@@ -149,10 +153,9 @@ contract NFTMARKETPLACE is ERC721URIStorage {
         uint256 price
     ) public payable onlyMember {
         MarketItem storage newMarketItem = s_IdMarketItem[tokenId];
-        require(
-            newMarketItem.seller != address(0),
-            "Sorry the token doesn't exist"
-        );
+        if (newMarketItem.seller == address(0)) {
+            revert NFTMARKETPLACE__TokenNotExist();
+        }
         if (newMarketItem.owner != payable(msg.sender)) {
             revert NFTMARKETPLACE__UnAuthorized();
         }
@@ -181,7 +184,9 @@ contract NFTMARKETPLACE is ERC721URIStorage {
     function createMarketSale(uint256 tokenId) external payable {
         MarketItem storage newMarketItem = s_IdMarketItem[tokenId];
         uint256 price = newMarketItem.price;
-        require(newMarketItem.seller != address(0), "Token doesn't exist");
+        if (newMarketItem.seller == address(0)) {
+            revert NFTMARKETPLACE__TokenNotExist();
+        }
         if (msg.value < (price * 1e18)) {
             revert NFTMARKETPLACE__lowPrice();
         }
@@ -196,13 +201,14 @@ contract NFTMARKETPLACE is ERC721URIStorage {
     }
 
     function startAuction(uint256 tokenId) external {
-        if (s_IdMarketItem[tokenId].seller != payable(msg.sender)) {
+        MarketItem storage newMarketItem = s_IdMarketItem[tokenId];
+        if (newMarketItem.seller != payable(msg.sender)) {
             revert NFTMARKETPLACE__UnAuthorized();
         }
-        if (!s_IdMarketItem[tokenId].bidding) {
+        if (!newMarketItem.bidding) {
             revert NFTMARKETPLACE__OnlyForBidding();
         }
-        s_started[tokenId] = true;
+        newMarketItem.started = true;
     }
 
     function bid(uint256 tokenId) external payable {
@@ -210,7 +216,7 @@ contract NFTMARKETPLACE is ERC721URIStorage {
         if (block.timestamp > s_endAt[tokenId]) {
             revert NFTMARKETPLACE__Ended();
         }
-        if (!s_started[tokenId]) {
+        if (!newMarketItem.started) {
             revert NFTMARKETPLACE__NotStarted();
         }
 
@@ -241,20 +247,18 @@ contract NFTMARKETPLACE is ERC721URIStorage {
 
     //End Bids
     function end(uint256 tokenId) external {
-        if (!s_started[tokenId]) {
-            revert NFTMARKETPLACE__NotStarted();
-        }
+        MarketItem storage newMarketItem = s_IdMarketItem[tokenId];
         if (s_ended[tokenId]) {
             revert NFTMARKETPLACE__Ended();
         }
         require(block.timestamp >= s_endAt[tokenId], "Not ended");
         s_ended[tokenId] = true;
         address highestBidder = s_highestBidder[tokenId];
-        MarketItem storage newMarketItem = s_IdMarketItem[tokenId];
         if (highestBidder != address(0)) {
             _transfer(address(this), newMarketItem.seller, tokenId);
             payable(newMarketItem.seller).transfer(newMarketItem.price * 1e18);
             transferNftOwnership(tokenId);
+            s_highestBidder[tokenId] = address(0);
         } else {
             _transfer(address(this), newMarketItem.seller, tokenId);
         }
@@ -367,6 +371,12 @@ contract NFTMARKETPLACE is ERC721URIStorage {
         uint256 tokenId
     ) external view returns (MarketItem memory, string memory /**ipfs url */) {
         return (s_IdMarketItem[tokenId], tokenURI(tokenId));
+    }
+
+    function fetchTokenUrl(
+        uint256 tokenId
+    ) external view returns (string memory /**ipfs url */) {
+        return tokenURI(tokenId);
     }
 
     // GETTERS

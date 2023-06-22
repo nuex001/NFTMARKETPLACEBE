@@ -69,7 +69,7 @@ contract NFTMARKETPLACE is ERC721URIStorage {
         _;
     }
     modifier onlyMember() {
-        if (!s_members[msg.sender] && msg.sender != i_owner) {
+        if (!s_members[msg.sender] && payable(msg.sender) != i_owner) {
             revert NFTMARKETPLACE__NotMEMBER();
         }
         _;

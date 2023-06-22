@@ -5,6 +5,7 @@ require("dotenv").config()
 require("solidity-coverage")
 require("hardhat-gas-reporter")
 require("hardhat-deploy");
+require("@nomiclabs/hardhat-etherscan");
 
 /** @type import('hardhat/config').HardhatUserConfig */
 const SEPOLIA_RPC_URL =
